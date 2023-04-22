@@ -9,7 +9,7 @@ sudo sysctl -w kernel.core_pattern=/var/crash/core-%e-%s-%u-%g-%p-%t
 
 2. Crash the server
     1. To achieve this for testing, I just added a simple nullptr dereference to handle_request:
-        ### **`src: c-webserver/src/webserver.c`**
+        #### **`src: c-webserver/src/webserver.c`**
         ```c
         int * derefZero = NULL;
         *derefZero = -1;
