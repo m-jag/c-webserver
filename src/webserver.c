@@ -316,10 +316,13 @@ CLEANUP:
     return socket_fd;
 }
 
+
+#define NUM_RETRIES 10
 int create_child_server_socket()
 {
     struct sockaddr_un address;
     int  socket_fd = -1;
+    int num_retries = NUM_RETRIES;
 
     socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
     if(socket_fd < 0)
@@ -334,11 +337,25 @@ int create_child_server_socket()
     address.sun_family = AF_UNIX;
     snprintf(address.sun_path, sizeof(address.sun_path)-1, "./demo_socket");
 
-    if(connect(socket_fd, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
-    {
-        printf("connect() failed\n");
+    while (num_retries-- > 0) {
+        if(connect(socket_fd, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) == 0)
+        {
+            printf("connect() succeeded\n");
+            break;
+        }
+        else // Unsuccessful connection
+        {
+            printf("connect() failed\n");
+            sleep(1);  // wait 1 second before trying again
+            continue;
+        }
+    }
+
+    if (num_retries < 0) {
+        fprintf(stderr, "Could not connect to server after %d retries\n", NUM_RETRIES);
         goto ERROR;
     }
+
     goto CLEANUP;
 
 ERROR:
