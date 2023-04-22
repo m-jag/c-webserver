@@ -1,4 +1,4 @@
-## Coredump
+# Coredump
 1. Enabling coredumps
 ```bash
 # Set the max coredump size

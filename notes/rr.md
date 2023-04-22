@@ -5,7 +5,7 @@
     sudo apt-get install rr
     ```
     2. edit rr.conf
-        ### **`src: /etc/sysctl.d/10-rr.conf`**
+        #### **`src: /etc/sysctl.d/10-rr.conf`**
         ```conf 
         # 
         kernel.perf_event_paranoid = 1
