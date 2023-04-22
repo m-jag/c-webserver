@@ -10,14 +10,7 @@
         # 
         kernel.perf_event_paranoid = 1
         ```
-        - kernel.perf_event_paranoid - TODO: Why?
-            ```bash
-            rr needs /proc/sys/kernel/perf_event_paranoid <= 1, but it is 2.
-            Change it to 1, or use 'rr record -n' (slow).
-            Consider putting 'kernel.perf_event_paranoid = 1' in /etc/sysctl.d/10-rr.conf.
-            See 'man 8 sysctl', 'man 5 sysctl.d' (systemd systems)
-            and 'man 5 sysctl.conf' (non-systemd systems) for more details.
-            ```
+        - kernel.perf_event_paranoid - khuey (rr developer) 'rr uses the PERF_COUNT_SW_CONTEXT_SWITCHES which the kernel considers "kernel profiling" (thus requiring perf_event_paranoid <= 1 or a user with CAP_PERFMON)' (src: https://github.com/rr-debugger/rr/issues/2835)
     3. Reload sysctl
         ```bash
         sudo sysctl --system
