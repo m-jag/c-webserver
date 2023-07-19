@@ -1,8 +1,10 @@
 #include "webserver.h"
 #include "process.h"
 #include "thread.h"
+#include "http_request.h"
 #include <errno.h>
 #include <sys/un.h>
+#include <stdlib.h>
 
 int main(int argc, char** argv) {
     // Fork the process
@@ -26,11 +28,13 @@ int main(int argc, char** argv) {
 void *request_handler(void *arg) {
     RequestHandlerArgs *args = (RequestHandlerArgs *)arg;
     int socket_fd = args->socket_fd;
-    char buffer[BUFFER_SIZE] = {0};
+    char * buffer = (char *) malloc(BUFFER_SIZE);
     char response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nHello World!";
     ssize_t read_bytes;
 
-    read_bytes = read(socket_fd, buffer, BUFFER_SIZE);
+    memset(buffer, 0, BUFFER_SIZE);
+    read_bytes = read(socket_fd, buffer, BUFFER_SIZE - 1);
+
     if (read_bytes > 0) {
         printf("Request received:\n%s\n", buffer);
 
@@ -70,6 +74,11 @@ void *request_handler(void *arg) {
         printf("Response sent, connection closed.\n");
     }
 
+    if (buffer)
+    {
+        free(buffer);
+    }
+
     return NULL;
 }
 
@@ -77,11 +86,15 @@ void *handle_request(void *arg) {
     RequestHandlerArgs *args = (RequestHandlerArgs *)arg;
     int socket_fd = args->socket_fd;
     printf("handle_request: %d\n", socket_fd);
-    char buffer[BUFFER_SIZE] = {0};
+    char buffer[BUFFER_SIZE];
     char response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nHello World!";
     ssize_t read_bytes;
 
-    read_bytes = read(socket_fd, buffer, BUFFER_SIZE);
+    memset(buffer, 0, sizeof(buffer));
+    read_bytes = read(socket_fd, buffer, sizeof(buffer) - 1);
+
+    http_req_parse(buffer);
+
     if (read_bytes > 0) {
         printf("Request received:\n%s\n", buffer);
         write(socket_fd, response, strlen(response));
@@ -135,20 +148,20 @@ void main_process() {
 
     // Bind server socket to address and port
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("bind failed");
+        perror("main_process: bind failed");
         goto CLEANUP;
     }
 
     // Listen for incoming connections
     if (listen(server_fd, MAX_THREADS) < 0) {
-        perror("listen failed");
+        perror("main_process: listen failed");
         goto CLEANUP;
     }
 
     // Accept incoming connections and handle requests in separate threads
     while (1) {
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
-            perror("accept failed");
+            perror("main_process: accept failed");
             goto CLEANUP;
         }
 
@@ -192,7 +205,7 @@ void child_process() {
     
     // Extract the RequestHandlerArgs from the message       
     // Allocate arguments and init thread_handler
-    RequestHandlerArgs *args = malloc(sizeof(RequestHandlerArgs));
+    RequestHandlerArgs *args = (RequestHandlerArgs *) malloc(sizeof(RequestHandlerArgs));
 
     // Open a socket to read client filedescriptors from
     int child_socket_fd = -1;
@@ -276,10 +289,10 @@ int create_main_server_socket()
     struct sockaddr_un address;
     int socket_fd = -1;
 
-    socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+    socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if(socket_fd < 0)
     {
-        printf("socket() failed\n");
+        printf("create_main_server_socket: socket() failed\n");
         goto ERROR;
     }
 
@@ -293,13 +306,13 @@ int create_main_server_socket()
 
     if(bind(socket_fd, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
     {
-        printf("bind() failed\n");
+        printf("create_main_server_socket: bind() failed\n");
         goto ERROR;
     }
 
     if(listen(socket_fd, 5) != 0)
     {
-        printf("listen() failed\n");
+        printf("create_main_server_socket: listen() failed\n");
         goto ERROR;
     }
 
@@ -324,7 +337,7 @@ int create_child_server_socket()
     int  socket_fd = -1;
     int num_retries = NUM_RETRIES;
 
-    socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+    socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if(socket_fd < 0)
     {
         printf("socket() failed\n");

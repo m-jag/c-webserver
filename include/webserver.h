@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PORT 8080
+#define PORT 8081
 #define BUFFER_SIZE 1024
 #define MAX_CONN 5
 #define REQUESTS_PER_PROCESS 10
