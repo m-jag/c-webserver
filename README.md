@@ -16,6 +16,10 @@ graph TD;
     main--Unix Socket-->child2;
 ```
 
+# Misc
+AF_UNIX sockets don't work on WSL2 from Windows directories, e.g. /mnt/<drive>
+src https://stackoverflow.com/questions/73067135
+
 # Links
 - [How to use rr](notes/rr.md)
 - [How to use coredumps](notes/coredump.md)
